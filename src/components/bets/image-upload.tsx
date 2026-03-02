@@ -5,14 +5,17 @@ import Image from "next/image";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import type { ExtractedBetData } from "@/lib/ocr-parser";
 
 interface ImageUploadProps {
   value: string | null;
   onChange: (url: string | null) => void;
+  onExtracted?: (data: ExtractedBetData) => void;
 }
 
-export function ImageUpload({ value, onChange }: ImageUploadProps) {
+export function ImageUpload({ value, onChange, onExtracted }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -35,6 +38,29 @@ export function ImageUpload({ value, onChange }: ImageUploadProps) {
 
         const data = await response.json();
         onChange(data.url);
+
+        // Trigger OCR scanning if callback provided
+        if (onExtracted && data.url) {
+          setIsScanning(true);
+          try {
+            const ocrResponse = await fetch("/api/ocr", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ imageUrl: data.url }),
+            });
+            if (ocrResponse.ok) {
+              const ocrData = await ocrResponse.json();
+              onExtracted(ocrData.extracted);
+              toast.success("Ticket scanned — review the pre-filled fields");
+            } else {
+              toast.warning("Could not scan ticket — fill in the fields manually");
+            }
+          } catch {
+            toast.warning("Could not scan ticket — fill in the fields manually");
+          } finally {
+            setIsScanning(false);
+          }
+        }
       } catch (error) {
         toast.error(
           error instanceof Error ? error.message : "Failed to upload image"
@@ -43,7 +69,7 @@ export function ImageUpload({ value, onChange }: ImageUploadProps) {
         setIsUploading(false);
       }
     },
-    [onChange]
+    [onChange, onExtracted]
   );
 
   const handleFileChange = useCallback(
@@ -96,8 +122,16 @@ export function ImageUpload({ value, onChange }: ImageUploadProps) {
             className="object-contain"
             sizes="(max-width: 768px) 100vw, 448px"
           />
+          {isScanning && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted-foreground border-t-primary" />
+              <p className="mt-2 text-sm font-medium text-muted-foreground">
+                Scanning ticket...
+              </p>
+            </div>
+          )}
         </div>
-        <Button type="button" variant="outline" size="sm" onClick={handleRemove}>
+        <Button type="button" variant="outline" size="sm" onClick={handleRemove} disabled={isScanning}>
           Remove Image
         </Button>
       </div>
@@ -115,10 +149,12 @@ export function ImageUpload({ value, onChange }: ImageUploadProps) {
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      {isUploading ? (
+      {isUploading || isScanning ? (
         <div className="flex flex-col items-center gap-2">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted-foreground border-t-primary" />
-          <p className="text-sm text-muted-foreground">Uploading...</p>
+          <p className="text-sm text-muted-foreground">
+            {isScanning ? "Scanning ticket..." : "Uploading..."}
+          </p>
         </div>
       ) : (
         <div className="flex flex-col items-center gap-2">

@@ -28,6 +28,7 @@ import { Separator } from "@/components/ui/separator";
 import { BetTypeSelector } from "./bet-type-selector";
 import { LegList } from "./leg-list";
 import { ImageUpload } from "./image-upload";
+import type { ExtractedBetData } from "@/lib/ocr-parser";
 
 const defaultLeg = {
   sport: "",
@@ -100,6 +101,37 @@ export function BetForm() {
 
   const showOverallOdds = betType !== "round_robin";
   const showTeaserPoints = betType === "teaser";
+
+  function handleExtracted(data: ExtractedBetData) {
+    if (data.betType) {
+      form.setValue("betType", data.betType as CreateBetInput["betType"]);
+    }
+    if (data.stake) {
+      form.setValue("stake", data.stake);
+    }
+    if (data.odds) {
+      form.setValue("odds", data.odds);
+    }
+    if (data.sportsbook) {
+      form.setValue("sportsbook", data.sportsbook);
+    }
+    if (data.legs && data.legs.length > 0) {
+      form.setValue(
+        "legs",
+        data.legs.map((leg) => ({
+          sport: leg.sport || "",
+          eventName: leg.eventName || "",
+          marketType: leg.marketType || "",
+          selection: leg.selection || "",
+          odds: leg.odds || ("" as unknown as number),
+          line: leg.line ?? null,
+          eventDate: null,
+          league: null,
+          status: "pending" as const,
+        }))
+      );
+    }
+  }
 
   async function onSubmit(data: CreateBetInput) {
     try {
@@ -342,6 +374,7 @@ export function BetForm() {
                 <ImageUpload
                   value={field.value ?? null}
                   onChange={field.onChange}
+                  onExtracted={handleExtracted}
                 />
               </FormControl>
               <FormMessage />
