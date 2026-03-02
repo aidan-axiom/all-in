@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id             String   @id @default(cuid())
+  username       String   @unique
+  hashedPassword String
+  displayName    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  bets           Bet[]
+}
+
+model Bet {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  betType      String
+  status       String    @default("pending")
+  stake        Float
+  odds         Int?
+  payout       Float?
+  teaserPoints Float?
+  sportsbook   String?
+  notes        String?
+  imageUrl     String?
+  placedAt     DateTime  @default(now())
+  resolvedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  legs         Leg[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([placedAt])
+}
+
+model Leg {
+  id         String    @id @default(cuid())
+  betId      String
+  bet        Bet       @relation(fields: [betId], references: [id], onDelete: Cascade)
+  sport      String
+  league     String?
+  eventName  String
+  eventDate  DateTime?
+  marketType String
+  selection  String
+  odds       Int
+  line       Float?
+  status     String    @default("pending")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([betId])
+}
