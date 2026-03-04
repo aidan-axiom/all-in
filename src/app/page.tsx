@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { LiveScoresFeed } from "@/components/scores/live-scores-feed";
 import type { BetWithLegs } from "@/lib/types";
 
 export default async function DashboardPage() {
@@ -218,6 +219,21 @@ export default async function DashboardPage() {
           <Link href="/analytics">Analytics</Link>
         </Button>
       </div>
+
+      {/* Live Scores */}
+      {pendingCount > 0 && (
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-2xl uppercase tracking-wide">
+              Live Scores
+            </h2>
+            <Button asChild variant="link" size="sm">
+              <Link href="/scores">View All</Link>
+            </Button>
+          </div>
+          <LiveScoresFeed limit={4} compact showHeader={false} />
+        </section>
+      )}
 
       {/* Pending Bets & Recent Activity */}
       <div className="grid gap-8 lg:grid-cols-2">
