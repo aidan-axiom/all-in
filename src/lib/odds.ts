@@ -82,3 +82,58 @@ export function calculateBetPL(status: string, stake: number, payout: number | n
       return 0;
   }
 }
+
+/**
+ * Calculate Expected Value (EV) for a bet.
+ * @param stake - Amount wagered
+ * @param odds - American odds received
+ * @param fairOdds - Fair/true American odds (no-vig line)
+ * @returns EV in dollars
+ */
+export function calculateEV(stake: number, odds: number, fairOdds: number): number {
+  const trueProbability = americanToImpliedProbability(fairOdds);
+  const profit = calculateProfit(stake, odds);
+  return (trueProbability * profit) - ((1 - trueProbability) * stake);
+}
+
+/**
+ * Remove the vig from a two-sided market to get fair probabilities.
+ * @returns [fairProb1, fairProb2] as decimals summing to 1
+ */
+export function removeVig(odds1: number, odds2: number): [number, number] {
+  const implied1 = americanToImpliedProbability(odds1);
+  const implied2 = americanToImpliedProbability(odds2);
+  const total = implied1 + implied2;
+  return [implied1 / total, implied2 / total];
+}
+
+/**
+ * Convert a probability (0-1) to American odds.
+ */
+export function probabilityToAmerican(prob: number): number {
+  if (prob <= 0 || prob >= 1) return 0;
+  if (prob >= 0.5) {
+    return Math.round(-100 * prob / (1 - prob));
+  }
+  return Math.round(100 * (1 - prob) / prob);
+}
+
+/**
+ * Calculate Closing Line Value.
+ * Positive = beat the closing line (got better odds than close).
+ * Returns difference in implied probabilities as a percentage.
+ */
+export function calculateCLV(placedOdds: number, closingOdds: number): number {
+  const impliedAtClose = americanToImpliedProbability(closingOdds);
+  const impliedAtPlaced = americanToImpliedProbability(placedOdds);
+  return (impliedAtClose - impliedAtPlaced) * 100;
+}
+
+/**
+ * Format a dollar amount as units.
+ */
+export function formatUnits(amount: number, unitSize: number): string {
+  if (unitSize <= 0) return "0.0u";
+  const units = amount / unitSize;
+  return `${units >= 0 ? "+" : ""}${units.toFixed(1)}u`;
+}

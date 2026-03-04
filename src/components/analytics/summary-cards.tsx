@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatCurrency } from "@/lib/odds";
+import { formatCurrency, formatUnits } from "@/lib/odds";
 
 interface SummaryCardsProps {
   totalBets: number;
@@ -10,6 +10,7 @@ interface SummaryCardsProps {
   pushes: number;
   totalStaked: number;
   totalPL: number;
+  unitSize?: number | null;
 }
 
 export function SummaryCards({
@@ -19,6 +20,7 @@ export function SummaryCards({
   pushes,
   totalStaked,
   totalPL,
+  unitSize,
 }: SummaryCardsProps) {
   const resolved = wins + losses + pushes;
   const winRate =
@@ -73,6 +75,11 @@ export function SummaryCards({
         </CardHeader>
         <CardContent>
           <p className="stat-value text-3xl">{formatCurrency(totalStaked)}</p>
+          {unitSize ? (
+            <p className="text-xs text-muted-foreground mt-1">
+              {formatUnits(totalStaked, unitSize)}
+            </p>
+          ) : null}
         </CardContent>
       </Card>
 
@@ -94,6 +101,19 @@ export function SummaryCards({
           >
             {formatCurrency(totalPL)}
           </p>
+          {unitSize ? (
+            <p
+              className={`text-xs mt-1 ${
+                totalPL > 0
+                  ? "text-primary"
+                  : totalPL < 0
+                    ? "text-destructive"
+                    : "text-muted-foreground"
+              }`}
+            >
+              {formatUnits(totalPL, unitSize)}
+            </p>
+          ) : null}
         </CardContent>
       </Card>
 

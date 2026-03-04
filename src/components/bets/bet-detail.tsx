@@ -64,6 +64,7 @@ export function BetDetail({ bet }: BetDetailProps) {
                 <ResolveDialog
                   betId={bet.id}
                   currentStatus={bet.status}
+                  betOdds={bet.odds}
                   legs={bet.legs}
                 />
               )}

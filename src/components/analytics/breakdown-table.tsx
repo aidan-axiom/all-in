@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatCurrency } from "@/lib/odds";
+import { formatCurrency, formatUnits } from "@/lib/odds";
 
 interface BreakdownRow {
   category: string;
@@ -26,13 +26,16 @@ interface BreakdownTableProps {
   bySport: BreakdownRow[];
   byBetType: BreakdownRow[];
   bySportsbook: BreakdownRow[];
+  unitSize?: number | null;
 }
 
-function BreakdownRows({ rows }: { rows: BreakdownRow[] }) {
+function BreakdownRows({ rows, unitSize }: { rows: BreakdownRow[]; unitSize?: number | null }) {
+  const colSpan = unitSize ? 8 : 7;
+
   if (rows.length === 0) {
     return (
       <TableRow>
-        <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+        <TableCell colSpan={colSpan} className="text-center text-muted-foreground py-8">
           No data available.
         </TableCell>
       </TableRow>
@@ -72,6 +75,19 @@ function BreakdownRows({ rows }: { rows: BreakdownRow[] }) {
             >
               {formatCurrency(row.pl)}
             </TableCell>
+            {unitSize ? (
+              <TableCell
+                className={
+                  row.pl > 0
+                    ? "text-primary"
+                    : row.pl < 0
+                      ? "text-destructive"
+                      : ""
+                }
+              >
+                {formatUnits(row.pl, unitSize)}
+              </TableCell>
+            ) : null}
             <TableCell
               className={
                 Number(roi) > 0
@@ -91,10 +107,28 @@ function BreakdownRows({ rows }: { rows: BreakdownRow[] }) {
   );
 }
 
+function TableHeaders({ label, unitSize }: { label: string; unitSize?: number | null }) {
+  return (
+    <TableHeader>
+      <TableRow>
+        <TableHead>{label}</TableHead>
+        <TableHead>Bets</TableHead>
+        <TableHead>Record</TableHead>
+        <TableHead>Win Rate</TableHead>
+        <TableHead>Staked</TableHead>
+        <TableHead>P&L</TableHead>
+        {unitSize ? <TableHead>P&L (u)</TableHead> : null}
+        <TableHead>ROI</TableHead>
+      </TableRow>
+    </TableHeader>
+  );
+}
+
 export function BreakdownTable({
   bySport,
   byBetType,
   bySportsbook,
+  unitSize,
 }: BreakdownTableProps) {
   return (
     <Card>
@@ -111,57 +145,27 @@ export function BreakdownTable({
 
           <TabsContent value="sport" className="mt-4">
             <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Sport</TableHead>
-                  <TableHead>Bets</TableHead>
-                  <TableHead>Record</TableHead>
-                  <TableHead>Win Rate</TableHead>
-                  <TableHead>Staked</TableHead>
-                  <TableHead>P&L</TableHead>
-                  <TableHead>ROI</TableHead>
-                </TableRow>
-              </TableHeader>
+              <TableHeaders label="Sport" unitSize={unitSize} />
               <TableBody>
-                <BreakdownRows rows={bySport} />
+                <BreakdownRows rows={bySport} unitSize={unitSize} />
               </TableBody>
             </Table>
           </TabsContent>
 
           <TabsContent value="betType" className="mt-4">
             <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Bet Type</TableHead>
-                  <TableHead>Bets</TableHead>
-                  <TableHead>Record</TableHead>
-                  <TableHead>Win Rate</TableHead>
-                  <TableHead>Staked</TableHead>
-                  <TableHead>P&L</TableHead>
-                  <TableHead>ROI</TableHead>
-                </TableRow>
-              </TableHeader>
+              <TableHeaders label="Bet Type" unitSize={unitSize} />
               <TableBody>
-                <BreakdownRows rows={byBetType} />
+                <BreakdownRows rows={byBetType} unitSize={unitSize} />
               </TableBody>
             </Table>
           </TabsContent>
 
           <TabsContent value="sportsbook" className="mt-4">
             <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Sportsbook</TableHead>
-                  <TableHead>Bets</TableHead>
-                  <TableHead>Record</TableHead>
-                  <TableHead>Win Rate</TableHead>
-                  <TableHead>Staked</TableHead>
-                  <TableHead>P&L</TableHead>
-                  <TableHead>ROI</TableHead>
-                </TableRow>
-              </TableHeader>
+              <TableHeaders label="Sportsbook" unitSize={unitSize} />
               <TableBody>
-                <BreakdownRows rows={bySportsbook} />
+                <BreakdownRows rows={bySportsbook} unitSize={unitSize} />
               </TableBody>
             </Table>
           </TabsContent>
