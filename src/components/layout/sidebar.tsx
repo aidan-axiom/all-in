@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Ticket, BarChart3, type LucideIcon } from "lucide-react";
+import { LayoutDashboard, Ticket, BarChart3, Radio, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 const navItems: { label: string; href: string; icon: LucideIcon }[] = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
+  { label: "Live Scores", href: "/scores", icon: Radio },
   { label: "My Bets", href: "/bets", icon: Ticket },
   { label: "Analytics", href: "/analytics", icon: BarChart3 },
 ];
