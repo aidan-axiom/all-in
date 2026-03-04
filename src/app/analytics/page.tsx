@@ -1,11 +1,20 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { calculateBetPL } from "@/lib/odds";
+import { calculateBetPL, calculateCLV } from "@/lib/odds";
 import { BET_TYPE_LABELS, type BetType } from "@/lib/types";
+import { filterBetsByTime, computeDayOfWeekStats, type TimeRange } from "@/lib/time-filters";
+import { computeStreaks, computeStreaksBySport } from "@/lib/streaks";
 import { SummaryCards } from "@/components/analytics/summary-cards";
 import { PLChart } from "@/components/analytics/pl-chart";
 import { BreakdownTable } from "@/components/analytics/breakdown-table";
+import { TimeFilterBar } from "@/components/analytics/time-filter-bar";
+import { StreakCards } from "@/components/analytics/streak-cards";
+import { DayOfWeekChart } from "@/components/analytics/day-of-week-chart";
+import { CLVSection } from "@/components/analytics/clv-section";
+import { EVCalculator } from "@/components/analytics/ev-calculator";
+import { UnitSettings } from "@/components/analytics/unit-settings";
 
 interface BreakdownRow {
   category: string;
@@ -17,18 +26,33 @@ interface BreakdownRow {
   pl: number;
 }
 
-export default async function AnalyticsPage() {
+interface PageProps {
+  searchParams: Promise<{ range?: string }>;
+}
+
+export default async function AnalyticsPage({ searchParams }: PageProps) {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
   }
 
-  // Fetch all bets for this user with legs included
-  const allBets = await prisma.bet.findMany({
-    where: { userId: session.user.id },
-    include: { legs: true },
-    orderBy: { placedAt: "desc" },
-  });
+  const params = await searchParams;
+  const timeRange = (params.range as TimeRange) ?? "all";
+
+  // Fetch user settings and all bets in parallel
+  const [user, allBets] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { unitSize: true },
+    }),
+    prisma.bet.findMany({
+      where: { userId: session.user.id },
+      include: { legs: true },
+      orderBy: { placedAt: "desc" },
+    }),
+  ]);
+
+  const unitSize = user?.unitSize ?? null;
 
   // If no bets at all, show empty state
   if (allBets.length === 0) {
@@ -44,9 +68,10 @@ export default async function AnalyticsPage() {
     );
   }
 
-  // Separate resolved and total
-  const totalBets = allBets.length;
-  const resolvedBets = allBets.filter((b) => b.status !== "pending");
+  // Apply time filter
+  const filteredBets = filterBetsByTime(allBets, timeRange);
+  const totalBets = filteredBets.length;
+  const resolvedBets = filteredBets.filter((b) => b.status !== "pending");
 
   // Aggregate stats
   let wins = 0;
@@ -69,7 +94,7 @@ export default async function AnalyticsPage() {
     }
   }
 
-  // P&L over time (only resolved bets, sorted by resolvedAt ascending)
+  // P&L over time (resolved bets sorted by resolvedAt ascending)
   const resolvedWithDate = resolvedBets
     .filter((b) => b.resolvedAt !== null)
     .sort(
@@ -88,8 +113,33 @@ export default async function AnalyticsPage() {
     };
   });
 
+  // Streaks (computed on resolved bets sorted ascending by resolvedAt)
+  const streaks = computeStreaks(resolvedWithDate);
+  const streaksBySport = computeStreaksBySport(resolvedWithDate);
+
+  // Day of week stats
+  const dayOfWeekStats = computeDayOfWeekStats(resolvedBets, calculateBetPL);
+
+  // CLV data (bets with both odds and closingOdds)
+  const betsWithCLV = resolvedWithDate.filter(
+    (b) => b.odds !== null && b.closingOdds !== null
+  );
+  const clvValues = betsWithCLV.map((b) => ({
+    date: new Date(b.resolvedAt!).toISOString().split("T")[0],
+    clv: calculateCLV(b.odds!, b.closingOdds!),
+    odds: b.odds!,
+    closingOdds: b.closingOdds!,
+  }));
+  const averageCLV =
+    clvValues.length > 0
+      ? clvValues.reduce((sum, v) => sum + v.clv, 0) / clvValues.length
+      : 0;
+  const beatClosePercent =
+    clvValues.length > 0
+      ? (clvValues.filter((v) => v.clv > 0).length / clvValues.length) * 100
+      : 0;
+
   // Breakdown by Sport
-  // A bet can have multiple legs with different sports; attribute the bet to each sport
   const sportMap = new Map<string, BreakdownRow>();
   for (const bet of resolvedBets) {
     const sports = new Set(bet.legs.map((leg) => leg.sport));
@@ -174,12 +224,19 @@ export default async function AnalyticsPage() {
 
   return (
     <div className="container mx-auto max-w-6xl px-4 py-8 space-y-8">
-      <div>
-        <h1 className="font-display text-4xl uppercase tracking-wide">Analytics</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Your betting performance at a glance.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-display text-4xl uppercase tracking-wide">Analytics</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Your betting performance at a glance.
+          </p>
+        </div>
+        <UnitSettings unitSize={unitSize} />
       </div>
+
+      <Suspense>
+        <TimeFilterBar />
+      </Suspense>
 
       <SummaryCards
         totalBets={totalBets}
@@ -188,14 +245,29 @@ export default async function AnalyticsPage() {
         pushes={pushes}
         totalStaked={totalStaked}
         totalPL={totalPL}
+        unitSize={unitSize}
       />
 
+      <StreakCards streaks={streaks} streaksBySport={streaksBySport} />
+
       <PLChart data={plOverTime} />
+
+      <DayOfWeekChart data={dayOfWeekStats} />
+
+      <CLVSection
+        averageCLV={averageCLV}
+        beatClosePercent={beatClosePercent}
+        totalWithCLV={betsWithCLV.length}
+        clvData={clvValues}
+      />
+
+      <EVCalculator defaultStake={unitSize ?? 100} />
 
       <BreakdownTable
         bySport={bySport}
         byBetType={byBetType}
         bySportsbook={bySportsbook}
+        unitSize={unitSize}
       />
     </div>
   );

@@ -50,6 +50,7 @@ export const createBetSchema = z.object({
 export const resolveBetSchema = z.object({
   status: z.enum(["won", "lost", "push", "cashout"]),
   payout: z.number().min(0).optional().nullable(),
+  closingOdds: americanOdds.optional().nullable(),
   legResults: z.array(z.object({
     legId: z.string(),
     status: z.enum(LEG_STATUSES),

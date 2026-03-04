@@ -61,6 +61,7 @@ export interface BetWithLegs {
   sportsbook: string | null;
   notes: string | null;
   imageUrl: string | null;
+  closingOdds: number | null;
   placedAt: Date;
   resolvedAt: Date | null;
   createdAt: Date;

@@ -271,7 +271,7 @@ async function main() {
             marketType: leg.marketType,
             selection: leg.selection,
             odds: leg.odds,
-            line: leg.line ?? null,
+            line: "line" in leg ? (leg.line ?? null) : null,
             status: leg.status,
           })),
         },

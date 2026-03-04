@@ -11,6 +11,7 @@ model User {
   username       String   @unique
   hashedPassword String
   displayName    String?
+  unitSize       Float?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   bets           Bet[]
@@ -29,6 +30,7 @@ model Bet {
   sportsbook   String?
   notes        String?
   imageUrl     String?
+  closingOdds  Int?
   placedAt     DateTime  @default(now())
   resolvedAt   DateTime?
   createdAt    DateTime  @default(now())

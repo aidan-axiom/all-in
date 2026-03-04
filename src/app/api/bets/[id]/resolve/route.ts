@@ -36,15 +36,16 @@ export async function POST(request: Request, context: RouteContext) {
       );
     }
 
-    const { status, payout, legResults } = parsed.data;
+    const { status, payout, closingOdds, legResults } = parsed.data;
 
     const updatedBet = await prisma.$transaction(async (tx) => {
-      // Update the bet status, payout, and resolved timestamp
+      // Update the bet status, payout, closing odds, and resolved timestamp
       const bet = await tx.bet.update({
         where: { id },
         data: {
           status,
           payout: payout ?? null,
+          closingOdds: closingOdds ?? null,
           resolvedAt: new Date(),
         },
       });

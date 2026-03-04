@@ -27,6 +27,7 @@ import { BET_STATUS_LABELS, LEG_STATUSES, type LegData } from "@/lib/types";
 interface ResolveDialogProps {
   betId: string;
   currentStatus: string;
+  betOdds: number | null;
   legs: LegData[];
 }
 
@@ -42,6 +43,7 @@ const LEG_STATUS_LABELS: Record<string, string> = {
 export function ResolveDialog({
   betId,
   currentStatus,
+  betOdds,
   legs,
 }: ResolveDialogProps) {
   const router = useRouter();
@@ -51,6 +53,7 @@ export function ResolveDialog({
     currentStatus === "pending" ? "" : currentStatus
   );
   const [payout, setPayout] = useState<string>("");
+  const [closingOdds, setClosingOdds] = useState<string>("");
   const [legResults, setLegResults] = useState<
     Record<string, string>
   >(
@@ -76,9 +79,11 @@ export function ResolveDialog({
 
     setIsSubmitting(true);
     try {
+      const closingOddsNum = closingOdds ? parseInt(closingOdds) : null;
       const body: Record<string, unknown> = {
         status,
         payout: showPayout ? parseFloat(payout) : null,
+        closingOdds: closingOddsNum && (closingOddsNum <= -100 || closingOddsNum >= 100) ? closingOddsNum : null,
         legResults: Object.entries(legResults).map(([legId, legStatus]) => ({
           legId,
           status: legStatus,
@@ -155,6 +160,23 @@ export function ResolveDialog({
                 value={payout}
                 onChange={(e) => setPayout(e.target.value)}
               />
+            </div>
+          )}
+
+          {/* Closing odds for CLV tracking (shown when bet has odds) */}
+          {betOdds && (
+            <div className="grid gap-2">
+              <Label htmlFor="closing-odds">Closing Odds (optional)</Label>
+              <Input
+                id="closing-odds"
+                type="number"
+                placeholder="e.g. -115"
+                value={closingOdds}
+                onChange={(e) => setClosingOdds(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Enter the closing line to track CLV.
+              </p>
             </div>
           )}
 
