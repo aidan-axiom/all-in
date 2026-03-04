@@ -171,3 +171,20 @@
 .card-loss-accent {
   border-top: 3px solid oklch(0.63 0.24 25);
 }
+
+.card-live {
+  border-top: 3px solid oklch(0.63 0.24 25);
+  animation: pulse-border 2s ease-in-out infinite;
+}
+
+@keyframes pulse-border {
+  0%, 100% { border-top-color: oklch(0.63 0.24 25); }
+  50% { border-top-color: oklch(0.63 0.24 25 / 40%); }
+}
+
+.score-value {
+  font-family: var(--font-barlow-condensed), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
